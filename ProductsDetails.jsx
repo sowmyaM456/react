@@ -1,103 +1,151 @@
+import axios from "axios"
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+const Dataproduct = () => {
+  let [showproducts, setshowproducts] = useState([])
 
-import axios from "axios";
-import { useEffect, useState } from "react";
-import { Loader } from "../../Components/Loader";
+  let [search, setsearch] = useState("")
+  let [category, setCategory] = useState("")
+  let [categorylist, setcategorylist] = useState([])
+  let [page, setpage] = useState(1)
+  let perpage = 10
 
-export const ProductDetails = () => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
+  let [totalproductslist, settotalproductslist] = useState(0)
 
-  const productsPerPage = 10;
 
   useEffect(() => {
-    async function productsApi() {
-      try {
-        const { data } = await axios.get("https://dummyjson.com/products?limit=100");
-        setProducts(data.products);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    productsApi();
-  }, []);
-
-  // 👇 Show full-screen loader
-  if (loading) {
-    return (
-      <div
-        style={{ position: "fixed", top: 0, left: 0, width: "100vw",height: "100vh",display: "flex",justifyContent: "center", alignItems: "center",  }}
-      >
-        <Loader />
-      </div>
-    );
+    async function productsapi() {
+      let { data } = await axios.get(`https://dummyjson.com/products/category-list`)
+      console.log(data);
+      setcategorylist(data)
+}
+    productsapi()
   }
-   
 
-  // Pagination logic
-  const startIndex = (page - 1) * productsPerPage;
-  const currentProducts = products.slice(startIndex, startIndex + productsPerPage);
-  const totalPages = Math.ceil(products.length / productsPerPage);
+    , [])
+  useEffect(() => {
+    async function renderproduct() {
+      let url;
+      try {
+
+        if (category) {
+          url = `https://dummyjson.com/products/category/${category}`
+
+        } else if (search) {
+          url = `https://dummyjson.com/products/search?q=${search}`
+
+        }
+        else {
+          url = `https://dummyjson.com/products?limit=100`
+
+
+        }
+        let { data } = await axios.get(url)
+
+        let allproducts = data.products || []
+        console.log(data);
+
+        settotalproductslist(allproducts.length)
+        let pages = allproducts.slice((page - 1) * perpage, page * perpage)
+        setshowproducts(pages)
+      }
+      catch (error) {
+        console.log(error.response);
+
+      }
+
+    }
+    renderproduct()
+  }, [page, search, category])
+
+  let productsnum = Math.ceil(totalproductslist / perpage)
 
   return (
-    <div className="container mt-4 pb-5">
-<div className="row justify-content-center">
-        {currentProducts.map((item) => (
-          <div
-            key={item.id}
-            className="col-lg-3 col-md-4 col-sm-6 col-12 mb-4 d-flex justify-content-center"
+    <>
+
+      <div className="row ">
+        <div className="col-5 ">
+          <input type="text" className="form-control w-50 shadow-lg text-center"
+            // style={{ marginLeft: '20px' }}
+            placeholder="Search...."
+            value={search}
+            onChange={(e) => {
+              setpage(1)
+              setCategory('')
+              setsearch(e.target.value)
+            }}
+          />
+        </div>
+
+        <div className="col-5 ">
+          <select name="" id="" className="form-control text-center w-50 shadow-lg"
+            // style={{ marginLeft: '460px' }}
+            onChange={(e) => {
+              setpage(1)
+              setsearch("")
+              setCategory(e.target.value)
+            }}
           >
+            <option value="All Categories">Categories</option>
+            {
+              categorylist.map((cate, i) => (
+                <option value={cate} key={i}>{cate}</option>
+
+              ))
+            }
+          </select>
+        </div>
+      </div>
+      <br />
+
+      <div className="row justify-content-center ">
+
+        {
+          showproducts.map((item, i) => (
             <div
-              className="card shadow-sm border-0"
-              style={{width: "13rem",borderRadius: "10px", }}
+              className="col-4 "
+              key={item.id}
+
             >
-              <img
-                src={item.thumbnail}
-                className="card-img-top"
-                alt={item.title}
-                style={{ height: "120px",objectFit: "contain",padding: "8px",}}
-              />
-              <div className="card-body text-center p-2">
-                <h6 className="card-title text-truncate" style={{ fontSize: "15px" }}>
-                  {item.title}
-                </h6>
-                <p
-                  className="card-text text-muted text-truncate"
-                  style={{ fontSize: "13px", maxWidth: "11rem" }}
-                >
-                  {item.description}
-                </p>
-                <button className="btn btn-sm btn-primary w-100">
-                  ${item.price}
+
+
+              <div className="card p-3 m-3 d-flex justify-content-between shadow-lg rounded-4" style={{ minHeight: "350px", maxHeight: "auto", width: "auto" }}>
+                <Link to={`/product/${item.id}`} className="nav-link">
+                  <h2 className="text-center">{item.title}</h2>
+                  <center><img src={item.thumbnail} alt={item.title} style={{ height: "150px" }} className="shadow-sm mb-2" /></center>
+                  <p
+                  >{item.description.length > 70
+                    ? item.description.slice(0, 70) + ' ...'
+                    : item.description}</p>
+                </Link>
+              </div>
+
+
+            </div>
+          ))
+
+        }
+     
+      </div>
+      {
+        productsnum > 1 && (
+          <div className="row justify-content-center">
+            {Array.from({ length: productsnum }, (_, i) => i + 1).map(btn => (
+              <div className="col-1">
+                <button className={`btn ${page === btn ? "btn-primary" : "btn-secondary"}`} onClick={() => setpage(btn)}>
+                  {btn}
                 </button>
               </div>
-            </div>
+            )
+
+
+            )}
           </div>
-        ))}
-      </div>
+        )
+      }
 
-      {/* Fixed bottom pagination */}
-      <div
-        className="d-flex justify-content-center align-items-center flex-wrap"
-        style={{position: "fixed",bottom: 0,left: 0,width: "100%", backgroundColor: "#fff",padding: "10px 0", boxShadow: "0 -2px 8px rgba(0,0,0,0.1)", zIndex: 1000, gap: "10px",}}
-      >
-        {Array.from({ length: totalPages }, (_, index) => (
-          <button
-            key={index}
-            className={`btn ${
-              page === index + 1 ? "btn-primary" : "btn-outline-primary"
-            }`}
-            style={{ width: "45px",fontSize: "14px",borderRadius: "6px",}}
-            onClick={() => setPage(index + 1)}
-          >
-            {index + 1}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-};
 
+    </>)
+}
+export default Dataproduct
 
